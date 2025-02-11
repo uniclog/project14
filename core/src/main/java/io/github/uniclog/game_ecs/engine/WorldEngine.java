@@ -1,0 +1,133 @@
+package io.github.uniclog.game_ecs.engine;
+
+import io.github.uniclog.game_ecs.engine.annotation.InjectedObject;
+import io.github.uniclog.game_ecs.engine.internal.SafeDisposable;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+
+import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
+
+@Slf4j
+public class WorldEngine implements SafeDisposable {
+    /// managers
+    private final Map<String, ComponentListener<?>> componentListeners;
+    private final EntityManager entityManager;
+    private final SystemManager systemManager;
+    /// injects
+    private final Map<Class<?>, Object> dependencies;
+
+    public WorldEngine(){
+        dependencies = new HashMap<>();
+        componentListeners = new HashMap<>();
+        entityManager = new EntityManager();
+        systemManager = new SystemManager();
+        dependencies.put(EntityManager.class, entityManager);
+        dependencies.put(SystemManager.class, systemManager);
+    }
+
+    public Entity createEntity() {
+        return new Entity(entityManager.size());
+    }
+
+    public void inject(Class<?> dependencyType, Object dependency) {
+        Stream.concat(systemManager.getSystems().stream(), componentListeners.values().stream())
+            .forEach(object -> {
+                Class<?> clazz = object.getClass();
+                for (Field field : clazz.getDeclaredFields()) {
+                    if (field.isAnnotationPresent(InjectedObject.class) && field.getType().equals(dependencyType)) {
+                        field.setAccessible(true);
+                        try {
+                            field.set(object, dependency);
+                        } catch (IllegalAccessException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            });
+        dependencies.put(dependencyType, dependency);
+    }
+
+    public void injectDependenciesIn(Object object) {
+        dependencies.forEach((cl, dep) -> {
+            for (Field field : object.getClass().getDeclaredFields()) {
+                if (field.isAnnotationPresent(InjectedObject.class) && field.getType().equals(cl)) {
+                    field.setAccessible(true);
+                    try {
+                        field.set(object, dep);
+                    } catch (IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
+    }
+
+
+    public void addSystem(Class<? extends System> systemObject) {
+        try {
+            // добавлем систему
+            System system = systemObject.getDeclaredConstructor().newInstance();
+            systemManager.add(system);
+            // добавляем имеющиеся зависимости
+            injectDependenciesIn(system);
+        } catch (Exception e) {
+            log.error("Error adding system: {}", e.getMessage());
+        }
+    }
+
+    public void addSystem(System system) {
+        // добавлем систему
+        systemManager.add(system);
+        // добавляем имеющиеся зависимости
+        injectDependenciesIn(system);
+    }
+
+    public <T extends Component> void addComponentListener(Class<? extends ComponentListener<T>> componentListenerDeclaration) {
+        try {
+            // добавляем обработчик для компоента
+            ComponentListener<T> componentListener = componentListenerDeclaration.getDeclaredConstructor().newInstance();
+            componentListeners.put(componentListener.getComponentName(), componentListener);
+            // добавляем имеющиеся зависимости
+            injectDependenciesIn(componentListener);
+        } catch (Exception e) {
+            log.error("Error adding component listener: {}", e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void addEntity(Entity entity) {
+        try {
+            entity.getComponents().forEach((key, value) -> {
+                ComponentListener<?> compLis = componentListeners.get(key);
+                if (compLis != null) {
+                    ComponentListener<Component> listener = (ComponentListener<Component>) compLis;
+                    listener.onCompAdded(entity, value);
+                }
+            });
+            entityManager.add(entity);
+        } catch (Exception e) {
+            log.error("Error adding entity: {}, message: {}", entity, e.getMessage(), e);
+        }
+    }
+
+    public void removeEntity(Entity entity) {
+        entityManager.remove(entity);
+    }
+
+    public void update(float delta) {
+        systemManager.update(delta);
+    }
+
+    @Override
+    public Logger getLogger() {
+        return log;
+    }
+
+    @Override
+    public void dispose() {
+        // todo реализовать очистку
+    }
+}
