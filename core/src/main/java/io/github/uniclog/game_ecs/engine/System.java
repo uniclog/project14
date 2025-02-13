@@ -6,4 +6,7 @@ public interface System {
     // todo продумать реализацию
     default void updateEntity(Entity entity) {
     }
+
+    default void registerAsListener() {
+    }
 }

@@ -84,6 +84,7 @@ public class WorldEngine implements SafeDisposable {
             systemManager.add(system);
             // добавляем имеющиеся зависимости
             injectDependenciesIn(system);
+            system.registerAsListener();
         } catch (Exception e) {
             log.error("Error adding system: {}", e.getMessage());
         }
@@ -94,6 +95,7 @@ public class WorldEngine implements SafeDisposable {
         systemManager.add(system);
         // добавляем имеющиеся зависимости
         injectDependenciesIn(system);
+        system.registerAsListener();
     }
 
     public <T extends Component> void addComponentListener(Class<? extends ComponentListener<T>> componentListenerDeclaration) {
@@ -103,6 +105,7 @@ public class WorldEngine implements SafeDisposable {
             componentListeners.put(componentListener.getComponentName(), componentListener);
             // добавляем имеющиеся зависимости
             injectDependenciesIn(componentListener);
+            // todo добавить исполнение пред-настройки компонентов вызвать у них onCompAdded
         } catch (Exception e) {
             log.error("Error adding component listener: {}", e.getMessage());
         }
