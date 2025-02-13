@@ -1,6 +1,8 @@
 package io.github.uniclog.game_ecs.engine;
 
 import io.github.uniclog.game_ecs.engine.annotation.InjectedObject;
+import io.github.uniclog.game_ecs.engine.component.EngineComponent;
+import io.github.uniclog.game_ecs.engine.component.EngineComponents;
 import io.github.uniclog.game_ecs.engine.internal.SafeDisposable;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -8,6 +10,7 @@ import org.slf4j.Logger;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -18,14 +21,18 @@ public class WorldEngine implements SafeDisposable {
     private final SystemManager systemManager;
     /// injects
     private final Map<Class<?>, Object> dependencies;
+    /// engine components
+    private final EngineComponents components;
 
-    public WorldEngine(){
+    public WorldEngine() {
+        components = new EngineComponents();
         dependencies = new HashMap<>();
         componentListeners = new HashMap<>();
         entityManager = new EntityManager();
         systemManager = new SystemManager();
         dependencies.put(EntityManager.class, entityManager);
         dependencies.put(SystemManager.class, systemManager);
+        dependencies.put(EngineComponents.class, components);
     }
 
     public Entity createEntity() {
@@ -33,7 +40,11 @@ public class WorldEngine implements SafeDisposable {
     }
 
     public void inject(Class<?> dependencyType, Object dependency) {
-        Stream.concat(systemManager.getSystems().stream(), componentListeners.values().stream())
+        Stream.of(
+                systemManager.getSystems().stream(),
+                componentListeners.values().stream(),
+                components.getComponents().values().stream())
+            .flatMap(Function.identity())
             .forEach(object -> {
                 Class<?> clazz = object.getClass();
                 for (Field field : clazz.getDeclaredFields()) {
@@ -94,6 +105,20 @@ public class WorldEngine implements SafeDisposable {
             injectDependenciesIn(componentListener);
         } catch (Exception e) {
             log.error("Error adding component listener: {}", e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public void addEngineComponent(EngineComponent component) {
+        try {
+            this.components.put(component.getClass().getName(), component);
+            ComponentListener<?> compLis = componentListeners.get(component.getClass().getName());
+            if (compLis != null) {
+                ComponentListener<EngineComponent> listener = (ComponentListener<EngineComponent>) compLis;
+                listener.onCompAdded(null, component);
+            }
+        } catch (Exception e) {
+            log.error("Error adding component: {}, message: {}", component, e.getMessage(), e);
         }
     }
 
