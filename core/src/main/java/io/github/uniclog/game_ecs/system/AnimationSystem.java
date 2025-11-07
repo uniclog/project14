@@ -48,6 +48,11 @@ public class AnimationSystem implements System {
         }
     }
 
+    @Override
+    public void render(float delta) {
+
+    }
+
     private Animation<TextureRegionDrawable> animation(String nextAnimation, float frameDuration) {
         var anim = cachedAnim.get(nextAnimation);
         if (anim == null) {

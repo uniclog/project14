@@ -21,11 +21,18 @@ public class MovementSystem implements System {
             if (imageComponent == null || velocity == null) continue;
 
             Image image = imageComponent.getImage();
+
+
             image.setPosition(
                 image.getX() + velocity.vx * delta,
                 image.getY() + velocity.vy * delta
             );
         }
+    }
+
+    @Override
+    public void render(float delta) {
+
     }
 
     @Override

@@ -39,7 +39,7 @@ public class RenderSystem implements System, EventListener {
     private EngineComponents components;
 
     @Override
-    public void update(float delta) {
+    public void render(float delta) {
         var players = entityManager.getEntitiesWithComponents(PlayerComponent.class);
         Entity player = null;
         if (!players.isEmpty()) {
@@ -81,6 +81,11 @@ public class RenderSystem implements System, EventListener {
                 }
             });
         }
+    }
+
+    @Override
+    public void update(float delta) {
+
     }
 
     @Override

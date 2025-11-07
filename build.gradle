@@ -54,7 +54,7 @@ configure(subprojects) {
 
 subprojects {
   version = '$projectVersion'
-  ext.appName = 'Project14'
+  ext.appName = 'gdx_engine'
   repositories {
     mavenCentral()
     maven { url 'https://s01.oss.sonatype.org' }
@@ -66,4 +66,4 @@ subprojects {
   }
 }
 
-eclipse.project.name = 'Project14' + '-parent'
+eclipse.project.name = 'gdx_engine' + '-parent'

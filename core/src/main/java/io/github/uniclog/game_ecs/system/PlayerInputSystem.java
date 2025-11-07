@@ -40,6 +40,11 @@ public class PlayerInputSystem implements System {
     }
 
     @Override
+    public void render(float delta) {
+
+    }
+
+    @Override
     public void updateEntity(Entity entity) {
         System.super.updateEntity(entity);
     }

@@ -149,6 +149,10 @@ public class WorldEngine implements SafeDisposable {
         systemManager.update(delta);
     }
 
+    public void render(float delta) {
+        systemManager.render(delta);
+    }
+
     @Override
     public Logger getLogger() {
         return log;

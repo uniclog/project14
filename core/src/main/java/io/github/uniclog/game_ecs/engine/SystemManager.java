@@ -1,17 +1,16 @@
 package io.github.uniclog.game_ecs.engine;
 
+import lombok.Getter;
+
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
 public class SystemManager {
-    private List<System> systems;
+    private final List<System> systems;
 
     public SystemManager() {
         systems = new ArrayList<>();
-    }
-
-    public List<System> getSystems() {
-        return systems;
     }
 
     public void add(System system) {
@@ -25,6 +24,12 @@ public class SystemManager {
     public void update(float delta) {
         for (System system : systems) {
             system.update(delta);
+        }
+    }
+
+    public void render(float delta) {
+        for (System system : systems) {
+            system.render(delta);
         }
     }
 }
