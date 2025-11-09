@@ -1,5 +1,6 @@
 package io.github.uniclog.game_ecs.system;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.tiles.AnimatedTiledMapTile;
@@ -10,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import io.github.uniclog.game_ecs.component.ImageComponent;
 import io.github.uniclog.game_ecs.component.PlayerComponent;
+import io.github.uniclog.game_ecs.component.PositionComponent;
 import io.github.uniclog.game_ecs.engine.Entity;
 import io.github.uniclog.game_ecs.engine.EntityManager;
 import io.github.uniclog.game_ecs.engine.System;
@@ -38,7 +40,7 @@ public class RenderSystem implements System, EventListener {
     @InjectedObject
     private EngineComponents components;
 
-    @Override
+    /*@Override
     public void render(float delta) {
         var players = entityManager.getEntitiesWithComponents(PlayerComponent.class);
         Entity player = null;
@@ -77,6 +79,58 @@ public class RenderSystem implements System, EventListener {
         if (!fgdLayers.isEmpty()) {
             use(stage.getBatch(), camera.combined, batch -> {
                 for (TiledMapTileLayer layer : fgdLayers) {
+                    renderer.renderTileLayer(layer);
+                }
+            });
+        }
+    }*/
+    @Override
+    public void render(float alpha) {
+        // игрок
+        var players = entityManager.getEntitiesWithComponents(PlayerComponent.class);
+        Entity player = players.isEmpty() ? null : players.get(0);
+
+        // интерполяция позиции и камеры
+        if (player != null) {
+            var pos = player.getComponent(PositionComponent.class);
+            var imgComp = player.getComponent(ImageComponent.class);
+            var image = imgComp.getImage();
+
+            // интерполяция позиции
+            float interpX = pos.prevX + (pos.x - pos.prevX) * alpha;
+            float interpY = pos.prevY + (pos.y - pos.prevY) * alpha;
+
+            image.setPosition(interpX, interpY);
+
+            // плавное движение камеры
+            float leap = 0.5f;
+            camera.position.lerp(new Vector3(interpX + image.getWidth() / 2, interpY + image.getHeight() / 2, 0), leap);
+        }
+
+        camera.update();
+        stage.getViewport().apply();
+
+        AnimatedTiledMapTile.updateAnimationBaseTime();
+        var renderer = components.getComponent(TiledMapEngineComponent.class).getRenderer();
+        renderer.setView(camera);
+
+        // фон
+        if (!bgdLayers.isEmpty()) {
+            use(stage.getBatch(), camera.combined, batch -> {
+                for (var layer : bgdLayers) {
+                    renderer.renderTileLayer(layer);
+                }
+            });
+        }
+
+        // акторы (спрайты)
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
+
+        // передний план
+        if (!fgdLayers.isEmpty()) {
+            use(stage.getBatch(), camera.combined, batch -> {
+                for (var layer : fgdLayers) {
                     renderer.renderTileLayer(layer);
                 }
             });
